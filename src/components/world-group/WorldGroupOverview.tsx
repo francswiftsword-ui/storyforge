@@ -10,6 +10,7 @@ import { buildAllWorldsOverview } from '../../lib/ai/world-group-context'
 import { WORLD_GROUP_TYPE_LABELS, WORLD_LINK_TYPE_LABELS } from '../../lib/types/world-group'
 import type { Project, WorldGroup, WorldGroupType, WorldGroupLinkType } from '../../lib/types'
 import WorldGroupDetail from './WorldGroupDetail'
+import WorldRelationGraph from './WorldRelationGraph'
 
 interface Props {
   project: Project
@@ -353,6 +354,9 @@ export default function WorldGroupOverview({ project }: Props) {
                   </button>
                 </div>
               )}
+
+              {/* 关系流向图（自适应布局） */}
+              <WorldRelationGraph onNodeClick={(g) => setEditingGroup(g)} />
 
               {links.length > 0 && (
                 <div className="space-y-1">
