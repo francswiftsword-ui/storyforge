@@ -44,6 +44,7 @@ export type PromptModuleKey =
   | 'plot.character-driven'
   // —— Phase 26.4 灵感反推 ——
   | 'inspiration.reverse'
+  | 'inspiration.reverse.multiworld'
   // —— Phase 25.4 多世界 ——
   | 'world-group.suggest'
   | 'world-group.expand'

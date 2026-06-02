@@ -1358,6 +1358,78 @@ D) 以上的混合
     isActive: true,
   },
 
+  // ── Phase 25.5.3：多世界版灵感反推 ───────────────────────────────────
+  {
+    scope: 'system',
+    moduleKey: 'inspiration.reverse.multiworld',
+    promptType: 'generate',
+    name: '内置-多世界灵感反推',
+    description: '多世界题材：用户给出带有多个世界意图的灵感，AI 顺着思路反推故事主线 + 多个世界 + 角色。',
+    systemPrompt: `你是一位擅长诸天流/无限流/快穿/修仙多界等多世界题材的小说策划师。
+用户提供了带有"多个世界"意图的灵感，请**顺着用户的思路**反向推演出：一条贯穿的故事主线 + 多个世界的设定 + 初始角色。
+
+═══ 设计原则 ═══
+- 忠实于用户灵感中提到的世界和意图，不要凭空替换用户想要的世界
+- 各世界差异化（力量体系/文明形态/核心冲突各不相同），避免雷同
+- 跨世界角色（如主角、系统）标记 isCrossWorld=true
+- 各世界专属角色标记其所属世界名（homeWorld）
+
+═══ 输出格式（严格 JSON，不要 markdown 包裹）═══
+{
+  "storyCore": {
+    "logline": "一句话故事",
+    "theme": "核心主题",
+    "centralConflict": "贯穿全书的核心冲突",
+    "plotPattern": "情节模式",
+    "mainPlot": "跨世界主线概述（50-100字）"
+  },
+  "worlds": [
+    {
+      "name": "世界名称",
+      "type": "primary/traversal/instance/parallel/ascension/custom",
+      "worldOrigin": "世界来源/创世背景",
+      "powerHierarchy": "力量层次体系",
+      "continentLayout": "地貌分布",
+      "climateByRegion": "气候环境",
+      "historyLine": "世界历史线",
+      "races": "种族/民族",
+      "factionLayout": "势力分布",
+      "entryCondition": "进入此世界的条件（主世界留空）",
+      "powerRestriction": "主角在此世界的能力限制（主世界留空）"
+    }
+  ],
+  "characters": [
+    {
+      "name": "角色名",
+      "role": "protagonist/antagonist/supporting",
+      "shortDescription": "一句话简介",
+      "personality": "性格",
+      "background": "背景",
+      "motivation": "动机",
+      "arc": "角色弧光",
+      "homeWorld": "所属世界名称（跨世界角色留空）",
+      "isCrossWorld": false
+    }
+  ]
+}
+
+注意：
+- 第一个世界通常是 type=primary 的主世界
+- 字段名必须与上面完全一致，每个字段都要有实质内容
+- worlds 数量遵循用户灵感（用户提到几个就给几个，未明确则 2-4 个）`,
+    userPromptTemplate: `{{#if projectName}}【作品名】{{projectName}}{{/if}}
+{{#if genres}}【倾向题材】{{genres}}{{/if}}
+
+═══ 我的灵感 ═══
+{{inspiration}}
+
+{{#if userHint}}【补充说明】{{userHint}}{{/if}}
+
+请顺着我的思路，反向推演出：故事主线 + 多个世界 + 角色。输出纯 JSON。`,
+    variables: ['projectName', 'genres', 'inspiration', 'userHint'],
+    isActive: true,
+  },
+
   // ── Phase 25.4：多世界 — AI 建议世界 ─────────────────────────────────
   {
     scope: 'system',
