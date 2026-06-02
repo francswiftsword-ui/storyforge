@@ -2,6 +2,7 @@ import { CTextarea } from '../shared/CompositionInput'
 import { useState } from 'react'
 import { Save, X, ChevronDown } from 'lucide-react'
 import { useProjectStore } from '../../stores/project'
+import { useWorldGroupStore } from '../../stores/world-group'
 import type { Project } from '../../lib/types'
 import { GENRE_OPTIONS } from '../../lib/types'
 
@@ -187,6 +188,10 @@ export default function ProjectInfoPanel({ project, onUpdate }: ProjectInfoPanel
               onClick={async () => {
                 if (!project.id) return
                 const next = !project.enableMultiWorld
+                // 开启时：确保主世界组 + 把现有项目级数据归属到主世界组
+                if (next) {
+                  await useWorldGroupStore.getState().migrateToMultiWorld(project.id)
+                }
                 await updateProject(project.id, { enableMultiWorld: next })
                 onUpdate({ ...project, enableMultiWorld: next, updatedAt: Date.now() })
               }}

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useWorldviewStore } from '../../stores/worldview'
+import { useWorldGroupStore } from '../../stores/world-group'
+import WorldGroupSwitcher from '../world-group/WorldGroupSwitcher'
 import { InlineTextarea } from '../shared/InlineEdit'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildWorldviewPrompt } from '../../lib/ai/adapters/worldview-adapter'
@@ -29,6 +31,7 @@ type FieldKey = typeof ALL_KEYS[number]
 
 export default function WorldviewNaturalPanel({ project }: Props) {
   const { worldview, saveWorldview, loadAll } = useWorldviewStore()
+  const activeGroupId = useWorldGroupStore(s => s.activeGroupId)
 
   const [values, setValues] = useState<Record<string, string>>({})
   const [naturalResources, setNaturalResources] = useState<NaturalResources>({
@@ -37,7 +40,9 @@ export default function WorldviewNaturalPanel({ project }: Props) {
   const [activeKey, setActiveKey] = useState<FieldKey>('worldStructure')
   const [streamingKeys, setStreamingKeys] = useState<Set<string>>(new Set())
 
-  useEffect(() => { loadAll(project.id!) }, [project.id, loadAll])
+  useEffect(() => {
+    loadAll(project.id!, project.enableMultiWorld ? activeGroupId : null)
+  }, [project.id, project.enableMultiWorld, activeGroupId, loadAll])
 
   useEffect(() => {
     if (!worldview) return
@@ -89,9 +94,12 @@ export default function WorldviewNaturalPanel({ project }: Props) {
     <div className="flex flex-col w-full h-full space-y-4">
       {/* 顶部 */}
       <div className="pb-4 border-b border-border/40 px-6 pt-4 shrink-0">
-        <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-          🏔️ 自然环境与地理
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+            🏔️ 自然环境与地理
+          </h2>
+          {project.enableMultiWorld && <WorldGroupSwitcher />}
+        </div>
         <p className="text-xs text-text-muted mt-0.5">
           定义世界的地理、气候与自然资源。如需声明真实与幻想的规则，请前往「⚖️ 真实与幻想」面板。
         </p>

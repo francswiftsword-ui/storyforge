@@ -29,6 +29,9 @@ interface WorldGroupStore {
   // 确保默认主世界组存在
   ensurePrimaryGroup: (projectId: number) => Promise<number>
 
+  // 开启多世界：确保主世界组 + 把现有项目级数据归属到主世界组
+  migrateToMultiWorld: (projectId: number) => Promise<void>
+
   // 切换活跃世界
   setActiveGroup: (id: number | null) => void
 }
@@ -194,6 +197,32 @@ export const useWorldGroupStore = create<WorldGroupStore>((set, get) => ({
       .sortBy('order')
     set({ groups, activeGroupId: id })
     return id
+  },
+
+  migrateToMultiWorld: async (projectId: number) => {
+    // 1. 确保主世界组存在
+    const primaryId = await get().ensurePrimaryGroup(projectId)
+
+    // 2. 把现有 worldGroupId 为空的项目级数据归属到主世界组
+    await db.transaction('rw', [
+      db.worldviews, db.powerSystems, db.geographies, db.histories, db.worldNodes,
+    ], async () => {
+      const stamp = async <T extends { id?: number; worldGroupId?: number | null }>(
+        table: { toArray: () => Promise<T[]>; update: (id: number, c: Partial<T>) => Promise<number> },
+        records: T[],
+      ) => {
+        for (const r of records) {
+          if (r.worldGroupId == null && r.id != null) {
+            await table.update(r.id, { worldGroupId: primaryId } as Partial<T>)
+          }
+        }
+      }
+      await stamp(db.worldviews, await db.worldviews.where('projectId').equals(projectId).toArray())
+      await stamp(db.powerSystems, await db.powerSystems.where('projectId').equals(projectId).toArray())
+      await stamp(db.geographies, await db.geographies.where('projectId').equals(projectId).toArray())
+      await stamp(db.histories, await db.histories.where('projectId').equals(projectId).toArray())
+      await stamp(db.worldNodes, await db.worldNodes.where('projectId').equals(projectId).toArray())
+    })
   },
 
   setActiveGroup: (id) => {

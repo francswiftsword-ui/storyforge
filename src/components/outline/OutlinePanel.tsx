@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Plus, Trash2, Sparkles, ChevronRight, ChevronDown, Check, X, LayoutList, Layers, Loader2 } from 'lucide-react'
 import { useOutlineStore } from '../../stores/outline'
 import { useWorldviewStore } from '../../stores/worldview'
+import { useWorldGroupStore } from '../../stores/world-group'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildVolumeOutlinePrompt, buildChapterOutlinePrompt } from '../../lib/ai/adapters/outline-adapter'
 import { buildWorldContext, buildCharacterContext } from '../../lib/ai/context-builder'
@@ -28,6 +29,7 @@ interface Props {
 export default function OutlinePanel({ project, onOpenChapter }: Props) {
   const { nodes, loadAll, addNode, updateNode, deleteNode } = useOutlineStore()
   const { worldview, storyCore, powerSystem } = useWorldviewStore()
+  const worldGroups = useWorldGroupStore(s => s.groups)
   const { characters } = useCharacterStore()
   const [selectedVolId, setSelectedVolId] = useState<number | null>(null)
   const [hint, setHint] = useState('')
@@ -347,6 +349,9 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
             >
               <div className="min-w-0 flex-1">
                 <p className={`text-sm font-medium truncate ${active ? 'text-accent' : 'text-text-primary'}`}>
+                  {project.enableMultiWorld && vol.worldGroupId != null && (
+                    <span className="mr-1">{worldGroups.find(g => g.id === vol.worldGroupId)?.icon || '🌐'}</span>
+                  )}
                   {vol.title}
                 </p>
                 <p className="text-[10px] text-text-muted">
@@ -448,6 +453,23 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
                 </button>
               </div>
             </div>
+
+            {/* 多世界：本卷所属世界 */}
+            {project.enableMultiWorld && worldGroups.length > 1 && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-muted">本卷所属世界</label>
+                <select
+                  value={selectedVol.worldGroupId ?? ''}
+                  onChange={e => updateNode(selectedVol.id!, { worldGroupId: e.target.value ? Number(e.target.value) : null })}
+                  className="px-2 py-1 bg-bg-surface border border-border rounded text-xs text-text-primary focus:outline-none focus:border-accent cursor-pointer"
+                >
+                  <option value="">未指定</option>
+                  {worldGroups.map(g => (
+                    <option key={g.id} value={g.id}>{g.icon || '🌐'} {g.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* 卷摘要 */}
             <div>
