@@ -55,6 +55,7 @@ import InspirationPanel from '../components/project/InspirationPanel'
 import LocationPanel from '../components/location/LocationPanel'
 import InventoryPanel from '../components/items/InventoryPanel'
 import StoryTimelinePanel from '../components/timeline/StoryTimelinePanel'
+import SceneVerifyPanel from '../components/scene/SceneVerifyPanel'
 import WorldGroupOverview from '../components/world-group/WorldGroupOverview'
 import { useLocationStore } from '../stores/location'
 import { useWorldGroupStore } from '../stores/world-group'
@@ -213,6 +214,8 @@ export default function WorkspacePage() {
         return <InventoryPanel project={project} />
       case 'story-timeline':
         return <StoryTimelinePanel project={project} />
+      case 'scene-verify':
+        return <SceneVerifyPanel project={project} />
 
       // 作品学习已整合进项目参考 → 深度分析 tab（Phase 20）
       case 'master-studies':

@@ -52,6 +52,8 @@ export type PromptModuleKey =
   | 'inventory.extract'
   // —— Phase 25.5.2-a 故事进程年表 ——
   | 'story-timeline.extract'
+  // —— Phase 27.2a 场景考证 ——
+  | 'scene.verify'
   // —— Phase 19 作品学习 ——
   | 'master.analyze-chunk'
   | 'master.extract-beats'
