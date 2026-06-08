@@ -6,14 +6,12 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Sparkles, ChevronDown, ChevronRight } from 'lucide-react'
 import { useDetailedOutlineStore } from '../../stores/detailed-outline'
-import { useCharacterStore } from '../../stores/character'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildDetailSceneGeneratePrompt } from '../../lib/ai/adapters/detail-scene-adapter'
-import { buildCharacterContext } from '../../lib/ai/context-builder'
-import { buildNodeWritingContext } from '../../lib/ai/world-group-context'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import { nanoid } from '../../lib/utils/id'
 import { adopt } from '../../lib/registry/adopt'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import type { DetailedScene, ScenePace } from '../../lib/types'
 
 const PACE_LABELS: Record<ScenePace, string> = {
@@ -39,7 +37,6 @@ interface Props {
 
 export default function ScenePanel({ projectId, outlineNodeId, chapterTitle, chapterSummary }: Props) {
   const { detailedOutlines, loadAll, getOrCreate, save } = useDetailedOutlineStore()
-  const { characters } = useCharacterStore()
   const ai = useAIStream()
   const [expanded, setExpanded] = useState(false)
 
@@ -96,13 +93,18 @@ export default function ScenePanel({ projectId, outlineNodeId, chapterTitle, cha
   }
 
   const handleAIGenerate = async () => {
-    // 多世界下按本章所属世界读取上下文（此前写死单世界，会串世界）
-    const worldCtx = await buildNodeWritingContext(projectId, outlineNodeId)
+    const assembled = await assembleContext({
+      projectId,
+      worldGroupId: null,
+      outlineNodeId,
+      sourceKeys: ['chapterOutline', 'worldview', 'storyCore', 'powerSystem', 'codex', 'characters', 'creativeRules', 'worldRules', 'historical', 'locations'],
+    })
+    const charIdx = assembled.included.indexOf('characters')
     const messages = buildDetailSceneGeneratePrompt(
       chapterTitle,
       chapterSummary || '',
-      worldCtx,
-      buildCharacterContext(characters.filter(c => c.role === 'protagonist' || c.role === 'supporting')),
+      assembled.text,
+      charIdx >= 0 ? assembled.segments[charIdx]?.content ?? '' : '',
       '',
     )
     ai.start(messages, undefined, { category: 'detail.scene', projectId })

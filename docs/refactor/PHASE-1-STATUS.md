@@ -15,7 +15,7 @@
 | 1.2a 建 FIELD_REGISTRY + AdoptionSchema + adopt() | ✅ Done | `refactor/phase-1-task-1.2a` | 纯新增写回层;不切现有调用方 |
 | 1.2b 写回调用方切换到 adopt() | ✅ Done | `refactor/phase-1-task-1.2b` | 灵感反推/导入/工作流/saveXxx/AI 采纳路径切到 `adopt()` |
 | 1.3a 建 CONTEXT_SOURCES + assembleContext() | ✅ Done | `refactor/phase-1-task-1.3a` | 纯新增读取层;登记 18 个上下文源 + 真裁剪装配 API |
-| 1.3b 生成入口切换到 assembleContext() | Pending | TBD | 32+ 生成入口,章节正文优先 |
+| 1.3b 生成入口切换到 assembleContext() | ✅ Done | `refactor/phase-1-task-1.3b` | 章节正文/大纲/细纲/角色/伏笔/故事线/场景考证/世界观 AI 入口切到 `assembleContext()` |
 
 ---
 
@@ -148,3 +148,20 @@
 - `npm run build` 通过。Vite 仍输出既有 dynamic-import / chunk-size warning,无构建失败。
 
 **下一步(1.3b)**:把生成入口切到 `assembleContext()`,章节正文优先,再迁移大纲/细纲/世界观/角色/伏笔等入口。
+
+### 2026-06-08 23:54:34 CST · 1.3b 完成(by Codex)
+
+- `ChapterEditor`:章节正文生成/续写主链路、上下文预览、审校/情感节拍子面板上下文改由 `assembleContext()` 装配。
+- `OutlinePanel`:卷大纲、章大纲、批量章节生成改由 `assembleContext()` 装配,并从装配结果拆出 storyCore/characters/worldRules 继续喂给旧 prompt adapter。
+- `DetailedOutlinePanel` / `ScenePanel`:细纲与场景拆分生成改由 `assembleContext()` 装配。
+- `CharacterPanel` / `ForeshadowPanel` / `StoryArcPanel` / `SceneVerifyPanel`:生成上下文改由 `assembleContext()` 装配。
+- `WorldviewOriginPanel` / `WorldviewNaturalPanel` / `WorldviewHumanityPanel`:真实与幻想规则改由 `worldRules` source 读取。
+- 形态检查:`rg "buildWorldContext|buildCharacterContext|buildNodeWritingContext|buildCurrentWorldContext|buildCodexContext|buildWorldRulesContext" src/components src/hooks` 无命中。
+
+**验证**:
+- `npx tsc --noEmit` 通过
+- `npm test` 通过(13 files / 39 tests)
+- `npm run check:required-tables` 通过(45 tables match schema.ts)
+- `npm run build` 通过。Vite 仍输出既有 dynamic-import / chunk-size warning,无构建失败。
+
+**Phase 1 状态**:完成。下一步进入 Phase 2.1(真实与幻想多世界化)。

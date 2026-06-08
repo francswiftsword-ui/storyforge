@@ -3,16 +3,13 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, ArrowRight, Sparkles, Loader2, LayoutList, LayoutGrid } from 'lucide-react'
 import { useForeshadowStore } from '../../stores/foreshadow'
 import { useChapterStore } from '../../stores/chapter'
-import { useWorldviewStore } from '../../stores/worldview'
-import { useCharacterStore } from '../../stores/character'
 import { useOutlineStore } from '../../stores/outline'
 import { useAIConfigStore } from '../../stores/ai-config'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildForeshadowSuggestPrompt, buildForeshadowStructurePrompt, parseForeshadowStructured } from '../../lib/ai/adapters/foreshadow-adapter'
-import { buildWorldContext, buildCharacterContext } from '../../lib/ai/context-builder'
-import { buildCodexContext } from '../../lib/ai/codex-context'
 import { chat } from '../../lib/ai/client'
 import { adopt } from '../../lib/registry/adopt'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import PromptRunPanel from '../shared/PromptRunPanel'
 import ForeshadowKanban from './ForeshadowKanban'
@@ -39,8 +36,6 @@ export default function ForeshadowPanel({ project }: Props) {
   const { foreshadows, loadAll, addForeshadow, updateForeshadow, deleteForeshadow, updateStatus } = useForeshadowStore()
   const { chapters } = useChapterStore()
   const { nodes: outlineNodes } = useOutlineStore()
-  const { worldview, storyCore, powerSystem } = useWorldviewStore()
-  const { characters } = useCharacterStore()
   const { config } = useAIConfigStore()
   const ai = useAIStream()
   const [filterStatus, setFilterStatus] = useState<ForeshadowStatus | 'all'>('all')
@@ -141,9 +136,16 @@ export default function ForeshadowPanel({ project }: Props) {
   const handleAISuggest = async () => {
     if (!config.apiKey) return
     setShowAI(true)
-    const codexCtx = await buildCodexContext(project.id!, null)
-    const worldCtx = [buildWorldContext(worldview, storyCore, powerSystem), codexCtx].filter(Boolean).join('\n\n')
-    const charCtx = buildCharacterContext(characters)
+    const assembled = await assembleContext({
+      projectId: project.id!,
+      worldGroupId: null,
+      provider: config.provider,
+      model: config.model,
+      sourceKeys: ['worldview', 'storyCore', 'powerSystem', 'codex', 'characters', 'creativeRules', 'worldRules', 'historical', 'locations'],
+    })
+    const charIdx = assembled.included.indexOf('characters')
+    const worldCtx = assembled.text
+    const charCtx = charIdx >= 0 ? assembled.segments[charIdx]?.content ?? '' : ''
     const existingForeshadows = foreshadows.map(f => `${f.name}（${TYPE_LABELS[f.type]}，${STATUS_LABELS[f.status].label}）：${f.description.slice(0, 100)}`).join('\n')
     const opts = {
       parameterValues: Object.keys(parameterValues).length > 0 ? parameterValues : undefined,

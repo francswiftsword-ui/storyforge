@@ -7,8 +7,8 @@
 | Phase | Status | Goal | Completion Signal |
 |---|---|---|---|
 | Phase 0 - Emergency fixes | Done | Remove immediate data-loss and invalid-transaction risks before building new architecture. | P0.1-P0.8 all fixed, regression tests green, build green. |
-| Phase 1 - Three registries foundation | In progress | Build `PROJECT_TABLES`, `FIELD_REGISTRY + AdoptionSchema`, and `CONTEXT_SOURCES + assembleContext` as single sources of truth. | Lifecycle/read/write paths use registry-derived APIs; lint and registry tests pass. |
-| Phase 2 - Multiworld and content integrity | Pending | Finish multiworld linkage, context completeness, AI current-value usage, import/world routing, and JSON reference cleanup. | Multiworld generation/import/export do not cross-contaminate; AI reads and writes the intended fields. |
+| Phase 1 - Three registries foundation | Done | Build `PROJECT_TABLES`, `FIELD_REGISTRY + AdoptionSchema`, and `CONTEXT_SOURCES + assembleContext` as single sources of truth. | Lifecycle/read/write paths use registry-derived APIs; lint and registry tests pass. |
+| Phase 2 - Multiworld and content integrity | In progress | Finish multiworld linkage, context completeness, AI current-value usage, import/world routing, and JSON reference cleanup. | Multiworld generation/import/export do not cross-contaminate; AI reads and writes the intended fields. |
 | Phase 3 - Project polish | Pending | Add generated AI manual, CI, coverage, safety, performance, README, contributing docs, and i18n preparation. | CI green, coverage target met, generated docs match code, project is presentable as a mature open-source tool. |
 
 ## Core Architecture Work
@@ -20,7 +20,7 @@
 | `AdoptionSchema` | 1.2 | Done | Collection writes for characters, foreshadows, outline nodes, chapters, detailed outlines, story arcs, codex categories, and codex entries now declare identity, dedupe policy, FK checks, array member checks, and stamps. |
 | `adopt()` unified write path | 1.2 | Done | AI output and structured adoption paths for 1.2b callers now route through validation, alias mapping, dedupe, FK checks, and typed DB writes. |
 | `CONTEXT_SOURCES` registry | 1.3 | Done | 18 AI context sources now declare scope, layer, budgets, worldGroupId/input requirements, enablement rules, and tests. |
-| `assembleContext()` unified read path | 1.3 | In progress | Pure-add assembly API exists with source requirements, world-aware reads, per-source caps, and true L3->L2->L1 trimming; caller migration remains 1.3b. |
+| `assembleContext()` unified read path | 1.3 | Done | Pure-add assembly API exists with source requirements, world-aware reads, per-source caps, true L3->L2->L1 trimming, and migrated core generation callers. |
 | Registry validation and lint | 1.1-1.3 / 3.3 | Pending | Validate Dexie tables vs registries, prompt keys, AI meta coverage, transaction scope, manual sync, and source isolation. |
 | Generated AI manual | 3.1 | Pending | Generate AI behavior documentation from prompt modules, context declarations, adoption schemas, and call metadata. |
 
@@ -46,7 +46,7 @@
 | 1.2a FIELD_REGISTRY + AdoptionSchema + adopt() | Done | `refactor/phase-1-task-1.2a` / this task commit | Pure-add unified write layer; no existing caller migration in this task. |
 | 1.2b adopt() caller migration | Done | `refactor/phase-1-task-1.2b` / this task commit | Switched inspiration reverse, world expansion, WorkflowRunner, chunk-writer, saveXxx thin wrappers, and focused AI adoption paths to `adopt()`; added caller regressions. |
 | 1.3a CONTEXT_SOURCES + assembleContext() | Done | `refactor/phase-1-task-1.3a` / this task commit | Pure-add unified read/context layer with 18 sources, registry validation, true trimming, and tests. |
-| 1.3b AI generation caller migration | Pending | TBD | Switch generation entrances to `assembleContext()` by priority. |
+| 1.3b AI generation caller migration | Done | `refactor/phase-1-task-1.3b` / this task commit | Switched chapter writing, outline/detail generation, character/foreshadow/story-arc/scene-verify/worldview AI context reads to `assembleContext()`; component/hook old-context grep is clean. |
 
 ## Execution Notes
 

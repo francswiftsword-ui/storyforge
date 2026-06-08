@@ -4,16 +4,13 @@ import {
 } from 'lucide-react'
 import { InlineInput, InlineTextarea } from '../shared/InlineEdit'
 import { useCharacterStore } from '../../stores/character'
-import { useWorldviewStore } from '../../stores/worldview'
 import { useWorldGroupStore } from '../../stores/world-group'
 import { useAIConfigStore } from '../../stores/ai-config'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildCharacterPrompt } from '../../lib/ai/adapters/character-adapter'
-import { buildWorldContext } from '../../lib/ai/context-builder'
-import { buildCodexContext } from '../../lib/ai/codex-context'
-import { buildCurrentWorldContext } from '../../lib/ai/world-group-context'
 import { parseCharacterOutput } from '../../lib/ai/parse-character-output'
 import { adopt } from '../../lib/registry/adopt'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import PromptRunPanel from '../shared/PromptRunPanel'
 import type { Project, Character, CharacterRole, CharacterAlignment } from '../../lib/types'
@@ -55,7 +52,6 @@ interface Props { project: Project }
 
 export default function CharacterPanel({ project }: Props) {
   const { characters, loadAll, addCharacter, updateCharacter, deleteCharacter } = useCharacterStore()
-  const { worldview, storyCore, powerSystem } = useWorldviewStore()
   const { groups, activeGroupId } = useWorldGroupStore()
   const { config: aiConfig } = useAIConfigStore()
   const [selected, setSelected] = useState<number | null>(null)
@@ -117,13 +113,14 @@ export default function CharacterPanel({ project }: Props) {
     const targetWorld = project.enableMultiWorld
       ? (typeof worldFilter === 'number' ? worldFilter : activeGroupId)
       : null
-    let worldCtx: string
-    if (targetWorld != null) {
-      worldCtx = await buildCurrentWorldContext(project.id!, targetWorld)
-    } else {
-      const codexCtx = await buildCodexContext(project.id!, null)
-      worldCtx = [buildWorldContext(worldview, storyCore, powerSystem), codexCtx].filter(Boolean).join('\n\n')
-    }
+    const assembled = await assembleContext({
+      projectId: project.id!,
+      worldGroupId: targetWorld,
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      sourceKeys: ['worldview', 'storyCore', 'powerSystem', 'codex', 'characters', 'creativeRules', 'worldRules', 'historical', 'locations'],
+    })
+    const worldCtx = assembled.text
     const opts = {
       parameterValues: Object.keys(parameterValues).length > 0 ? parameterValues : undefined,
       overrides: (systemOverride != null || userOverride != null) ? {

@@ -7,11 +7,15 @@ import WorldGroupSwitcher from '../world-group/WorldGroupSwitcher'
 import { InlineTextarea } from '../shared/InlineEdit'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildWorldviewPrompt } from '../../lib/ai/adapters/worldview-adapter'
-import { buildWorldRulesContext } from '../../lib/ai/world-rules-manifest'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import { streamChat } from '../../lib/ai/client'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import PromptRunPanel from '../shared/PromptRunPanel'
 import type { Project, DivineDesign } from '../../lib/types'
+
+async function buildRulesSourceContext(projectId: number): Promise<string> {
+  return (await assembleContext({ projectId, worldGroupId: null, sourceKeys: ['worldRules'] })).text
+}
 
 // ── 常量 ───────────────────────────────────────────────────────
 
@@ -204,7 +208,7 @@ function TextFieldEditor({
 
   const handleGenerate = async () => {
     // Phase 32: 注入世界规则
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const rulesCtx = await buildRulesSourceContext(project.id!)
     const opts = {
       parameterValues: {
         ...parameterValues,
@@ -284,7 +288,7 @@ function DivineFieldEditor({
   }, [ai.isStreaming, onStreamingChange])
 
   const handleGenerate = async () => {
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const rulesCtx = await buildRulesSourceContext(project.id!)
     const opts = {
       parameterValues: {
         ...parameterValues,

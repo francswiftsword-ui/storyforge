@@ -2,19 +2,16 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Plus, Trash2, Sparkles, ChevronRight, Wand2, AlertTriangle, Zap, Square } from 'lucide-react'
 import { useOutlineStore } from '../../stores/outline'
 import { useDetailedOutlineStore } from '../../stores/detailed-outline'
-import { useWorldviewStore } from '../../stores/worldview'
 import { useCharacterStore } from '../../stores/character'
 import { useForeshadowStore } from '../../stores/foreshadow'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildDetailSceneGeneratePrompt, buildEnhancedDetailPrompt, parseEnhancedDetailSmart } from '../../lib/ai/adapters/detail-scene-adapter'
 import { useAIConfigStore } from '../../stores/ai-config'
-import { buildWorldContext, buildCharacterContext } from '../../lib/ai/context-builder'
-import { buildCodexContext } from '../../lib/ai/codex-context'
-import { buildNodeWritingContext } from '../../lib/ai/world-group-context'
 import { batchGenerateDetails, type BatchProgress } from '../../lib/ai/batch-detail-runner'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import { nanoid } from '../../lib/utils/id'
 import { adopt } from '../../lib/registry/adopt'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import type { Project, DetailedOutline, DetailedScene, ScenePace, EmotionArc } from '../../lib/types'
 
 interface Props {
@@ -47,7 +44,6 @@ const EMOTION_LABELS: Record<EmotionArc, string> = {
 export default function DetailedOutlinePanel({ project }: Props) {
   const { nodes, loadAll: loadOutline } = useOutlineStore()
   const { detailedOutlines, loadAll: loadDetailed, getOrCreate, save } = useDetailedOutlineStore()
-  const { worldview, storyCore } = useWorldviewStore()
   const { characters } = useCharacterStore()
   const aiConfig = useAIConfigStore(s => s.config)
   const { foreshadows, loadAll: loadForeshadows } = useForeshadowStore()
@@ -122,15 +118,31 @@ export default function DetailedOutlinePanel({ project }: Props) {
     return result
   }, [project.id, loadDetailed])
 
+  const buildDetailContext = useCallback(async (outlineNodeId: number) => {
+    const node = nodes.find(n => n.id === outlineNodeId)
+    const assembled = await assembleContext({
+      projectId: project.id!,
+      worldGroupId: node?.worldGroupId ?? null,
+      outlineNodeId,
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      sourceKeys: ['chapterOutline', 'worldview', 'storyCore', 'powerSystem', 'codex', 'characters', 'creativeRules', 'worldRules', 'historical', 'locations'],
+    })
+    const charIdx = assembled.included.indexOf('characters')
+    return {
+      worldContext: assembled.text,
+      characterContext: charIdx >= 0 ? assembled.segments[charIdx]?.content ?? '' : '',
+    }
+  }, [project.id, nodes, aiConfig.provider, aiConfig.model])
+
   const handleAIGenerate = async () => {
     if (!currentChapter) return
-    // 多世界下按本章所属世界读取上下文
-    const worldCtx = await buildNodeWritingContext(project.id!, currentChapter.id!)
+    const ctx = await buildDetailContext(currentChapter.id!)
     const messages = buildDetailSceneGeneratePrompt(
       currentChapter.title,
       currentChapter.summary || '',
-      worldCtx,
-      buildCharacterContext(characters.filter(c => c.role === 'protagonist' || c.role === 'supporting')),
+      ctx.worldContext,
+      ctx.characterContext,
       '',
     )
     ai.start(messages, undefined, { category: 'detail.scene', projectId: project.id! })
@@ -142,8 +154,7 @@ export default function DetailedOutlinePanel({ project }: Props) {
     const idx = chapterNodes.indexOf(currentChapter)
     const prevSummary = idx > 0 ? (chapterNodes[idx - 1].summary || '') : ''
     const nextSummary = idx < chapterNodes.length - 1 ? (chapterNodes[idx + 1].summary || '') : ''
-    // 多世界下按本章所属世界读取上下文
-    const worldCtx = await buildNodeWritingContext(project.id!, currentChapter.id!)
+    const { worldContext: worldCtx } = await buildDetailContext(currentChapter.id!)
 
     const charCtx = characters
       .filter(c => c.role === 'protagonist' || c.role === 'supporting')
@@ -225,8 +236,14 @@ export default function DetailedOutlinePanel({ project }: Props) {
 
   const handleBatchDetail = useCallback(async () => {
     if (batchProgress) return // 已在运行
-    const codexCtx = await buildCodexContext(project.id!, null)
-    const worldCtx = [buildWorldContext(worldview, storyCore, null), codexCtx].filter(Boolean).join('\n\n')
+    const baseCtx = await assembleContext({
+      projectId: project.id!,
+      worldGroupId: null,
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      sourceKeys: ['worldview', 'storyCore', 'powerSystem', 'codex', 'characters', 'creativeRules', 'worldRules', 'historical', 'locations'],
+    })
+    const worldCtx = baseCtx.text
     const charCtx = characters
       .filter(c => c.role === 'protagonist' || c.role === 'supporting')
       .map(c => `[ID:${c.id}] ${c.name}（${c.role}）`)
@@ -246,7 +263,7 @@ export default function DetailedOutlinePanel({ project }: Props) {
         worldContext: worldCtx,
         // 多世界：逐章用本章所属世界的上下文
         worldContextResolver: project.enableMultiWorld
-          ? (chId) => buildNodeWritingContext(project.id!, chId)
+          ? async (chId) => (await buildDetailContext(chId)).worldContext
           : undefined,
         characterContext: charCtx,
         foreshadowContext: foreshadowCtx,
@@ -266,7 +283,7 @@ export default function DetailedOutlinePanel({ project }: Props) {
       // 3 秒后清除进度信息
       setTimeout(() => setBatchProgress(null), 3000)
     }
-  }, [batchProgress, worldview, storyCore, characters, foreshadows, chapterNodes, detailedOutlines, project.id, loadDetailed, adoptDetailedPatch])
+  }, [batchProgress, characters, foreshadows, chapterNodes, detailedOutlines, project.id, project.enableMultiWorld, loadDetailed, adoptDetailedPatch, buildDetailContext, aiConfig.provider, aiConfig.model])
 
   const handleBatchStop = useCallback(() => {
     batchAbortRef.current?.abort()

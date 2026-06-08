@@ -5,11 +5,7 @@ import { useWorldviewStore } from '../../stores/worldview'
 import { useWorldGroupStore } from '../../stores/world-group'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildVolumeOutlinePrompt, buildChapterOutlinePrompt } from '../../lib/ai/adapters/outline-adapter'
-import { buildWorldContext, buildCharacterContext } from '../../lib/ai/context-builder'
-import { buildCurrentWorldContext, buildNodeWritingContext } from '../../lib/ai/world-group-context'
-import { buildCodexContext } from '../../lib/ai/codex-context'
-import { buildWorldRulesContext } from '../../lib/ai/world-rules-manifest'
-import { useCharacterStore } from '../../stores/character'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import {
   parseVolumeOutlineSmart, parseChapterOutlineSmart,
   type ParsedVolume, type ParsedChapter,
@@ -17,6 +13,7 @@ import {
 import { useAIConfigStore } from '../../stores/ai-config'
 import { runBatchOutlineGeneration, type BatchOutlineProgress } from '../../lib/ai/batch-outline-runner'
 import { adopt } from '../../lib/registry/adopt'
+import type { AssembleContextResult } from '../../lib/registry/types'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import PromptRunPanel from '../shared/PromptRunPanel'
 import PanelLayout from '../shared/PanelLayout'
@@ -32,9 +29,8 @@ interface Props {
 
 export default function OutlinePanel({ project, onOpenChapter }: Props) {
   const { nodes, loadAll, addNode, updateNode, deleteNode } = useOutlineStore()
-  const { worldview, storyCore, powerSystem } = useWorldviewStore()
+  const { storyCore } = useWorldviewStore()
   const worldGroups = useWorldGroupStore(s => s.groups)
-  const { characters } = useCharacterStore()
   const aiConfig = useAIConfigStore(s => s.config)
   const [selectedVolId, setSelectedVolId] = useState<number | null>(null)
   const [hint, setHint] = useState('')
@@ -142,18 +138,43 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     } : undefined,
   })
 
+  const buildOutlineAssembledContext = useCallback(async (worldGroupId: number | null, outlineNodeId?: number | null) => {
+    return await assembleContext({
+      projectId: project.id!,
+      worldGroupId,
+      outlineNodeId: outlineNodeId ?? null,
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      sourceKeys: [
+        'worldview',
+        'storyCore',
+        'powerSystem',
+        'codex',
+        'characters',
+        'creativeRules',
+        'worldRules',
+        'historical',
+        'locations',
+      ],
+    })
+  }, [project.id, aiConfig.provider, aiConfig.model])
+
+  const contextPart = (assembled: AssembleContextResult, key: string): string => {
+    const idx = assembled.included.indexOf(key)
+    return idx >= 0 ? assembled.segments[idx]?.content ?? '' : ''
+  }
+
   // ── AI 生成 ──
 
   const handleAIVolumes = async () => {
     setActiveModuleKey('outline.volume')
     setPreviewVolumes(null)
     setPreviewChapters(null)
-    const codexCtx = await buildCodexContext(project.id!, null)
-    const worldCtx = [buildWorldContext(worldview, storyCore, powerSystem), codexCtx].filter(Boolean).join('\n\n')
+    const assembled = await buildOutlineAssembledContext(null)
+    const worldCtx = assembled.text
     const scCtx = storyCore ? `主题：${storyCore.theme}\n冲突：${storyCore.centralConflict}\n主线：${storyCore.mainPlot || storyCore.storyLines || ''}${storyCore.subPlots ? `\n复线：${storyCore.subPlots}` : ''}` : ''
-    const charCtx = buildCharacterContext(characters)
-    // Phase 32: 世界规则清单注入
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const charCtx = contextPart(assembled, 'characters')
+    const rulesCtx = contextPart(assembled, 'worldRules')
     const messages = buildVolumeOutlinePrompt(project.name, project.genre, worldCtx, scCtx, project.targetWordCount || 500000, hint, buildOpts(), charCtx, rulesCtx)
     ai.start(messages, undefined, { category: 'outline.volume', projectId: project.id! })
   }
@@ -163,22 +184,12 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     setActiveModuleKey('outline.chapter')
     setPreviewVolumes(null)
     setPreviewChapters(null)
-    // 多世界：若本卷指定了所属世界，用该世界的完整上下文（卷可能不属于当前活跃世界）
-    let worldCtx: string
-    let chars = characters
-    if (project.enableMultiWorld && selectedVol.worldGroupId != null) {
-      worldCtx = await buildCurrentWorldContext(project.id!, selectedVol.worldGroupId)
-      // 角色限定为本世界角色 + 跨世界角色
-      chars = characters.filter(c => c.isCrossWorld || c.homeWorldGroupId === selectedVol.worldGroupId)
-    } else {
-      const codexCtx = await buildCodexContext(project.id!, null)
-      worldCtx = [buildWorldContext(worldview, storyCore, powerSystem), codexCtx].filter(Boolean).join('\n\n')
-    }
+    const assembled = await buildOutlineAssembledContext(selectedVol.worldGroupId ?? null, selectedVol.id)
+    const worldCtx = assembled.text
     const volIdx = volumes.indexOf(selectedVol)
     const prevSummary = volIdx > 0 ? volumes[volIdx - 1].summary : ''
-    const charCtx = buildCharacterContext(chars)
-    // Phase 32: 世界规则清单注入
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const charCtx = contextPart(assembled, 'characters')
+    const rulesCtx = contextPart(assembled, 'worldRules')
     const messages = buildChapterOutlinePrompt(selectedVol.title, selectedVol.summary, worldCtx, prevSummary, hint, buildOpts(), charCtx, rulesCtx)
     ai.start(messages, undefined, { category: 'outline.chapter', projectId: project.id! })
   }
@@ -194,11 +205,10 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     const controller = new AbortController()
     batchAbortRef.current = controller
 
-    const batchCodexCtx = await buildCodexContext(project.id!, null)
-    const worldCtx = [buildWorldContext(worldview, storyCore, powerSystem), batchCodexCtx].filter(Boolean).join('\n\n')
-    const charCtx = buildCharacterContext(characters)
-    // Phase 32: 世界规则清单
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const assembled = await buildOutlineAssembledContext(null)
+    const worldCtx = assembled.text
+    const charCtx = contextPart(assembled, 'characters')
+    const rulesCtx = contextPart(assembled, 'worldRules')
 
     try {
       const result = await runBatchOutlineGeneration({
@@ -206,7 +216,11 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
         worldContext: worldCtx,
         // 多世界：逐卷用本卷所属世界的上下文
         worldContextResolver: project.enableMultiWorld
-          ? (volId) => buildNodeWritingContext(project.id!, volId)
+          ? async (volId) => {
+            const vol = nodes.find(n => n.id === volId)
+            const resolved = await buildOutlineAssembledContext(vol?.worldGroupId ?? null, volId)
+            return resolved.text
+          }
           : undefined,
         userHint: hint || undefined,
         characterContext: charCtx,
@@ -223,7 +237,7 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
       setBatchRunning(false)
       batchAbortRef.current = null
     }
-  }, [volumes, worldview, storyCore, powerSystem, hint])
+  }, [volumes, nodes, project.enableMultiWorld, hint, buildOutlineAssembledContext])
 
   const handleBatchCancel = useCallback(() => {
     batchAbortRef.current?.abort()

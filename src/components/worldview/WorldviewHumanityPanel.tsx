@@ -6,10 +6,14 @@ import WorldGroupSwitcher from '../world-group/WorldGroupSwitcher'
 import { InlineTextarea } from '../shared/InlineEdit'
 import { useAIStream } from '../../hooks/useAIStream'
 import { buildWorldviewPrompt } from '../../lib/ai/adapters/worldview-adapter'
-import { buildWorldRulesContext } from '../../lib/ai/world-rules-manifest'
+import { assembleContext } from '../../lib/registry/assemble-context'
 import AIStreamOutput from '../shared/AIStreamOutput'
 import PromptRunPanel from '../shared/PromptRunPanel'
 import type { Project } from '../../lib/types'
+
+async function buildRulesSourceContext(projectId: number): Promise<string> {
+  return (await assembleContext({ projectId, worldGroupId: null, sourceKeys: ['worldRules'] })).text
+}
 import CurrencyPanel from './CurrencyPanel'
 
 // ── 字段定义（统一标签，兼容幻想与历史） ─────────────────────────
@@ -189,7 +193,7 @@ function HumanityFieldEditor({
   }, [ai.isStreaming, onStreamingChange])
 
   const handleGenerate = async () => {
-    const rulesCtx = await buildWorldRulesContext(project.id!)
+    const rulesCtx = await buildRulesSourceContext(project.id!)
     const opts = {
       parameterValues: {
         ...parameterValues,
