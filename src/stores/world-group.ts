@@ -8,6 +8,54 @@ import { requireBackupBefore } from '../lib/safety/require-backup-before'
 
 const now = () => Date.now()
 
+const PROJECT_TABLES_ALL = [
+  db.aiUsageLog,
+  db.chapters,
+  db.characterRelations,
+  db.characters,
+  db.codexCategories,
+  db.codexEntries,
+  db.creativeRules,
+  db.detailedOutlines,
+  db.emotionBeatCards,
+  db.factions,
+  db.foreshadows,
+  db.geographies,
+  db.historicalKeywords,
+  db.historicalTimelineEvents,
+  db.histories,
+  db.importFiles,
+  db.importJobs,
+  db.importLogs,
+  db.importSessions,
+  db.importantLocations,
+  db.itemLedger,
+  db.itemSystems,
+  db.masterChapterBeats,
+  db.masterChunkAnalysis,
+  db.masterInsights,
+  db.masterStyleMetrics,
+  db.masterWorks,
+  db.notes,
+  db.outlineNodes,
+  db.powerSystems,
+  db.projects,
+  db.promptTemplates,
+  db.promptWorkflows,
+  db.referenceChunkAnalysis,
+  db.references,
+  db.snapshots,
+  db.stateCards,
+  db.storyArcs,
+  db.storyCores,
+  db.storyTimelineEvents,
+  db.worldGroupLinks,
+  db.worldGroups,
+  db.worldNodes,
+  db.worldRulesProfiles,
+  db.worldviews,
+]
+
 interface WorldGroupStore {
   groups: WorldGroup[]
   links: WorldGroupLink[]
@@ -95,12 +143,7 @@ export const useWorldGroupStore = create<WorldGroupStore>((set, get) => ({
     const pid = group.projectId
 
     // 级联删除该组下的所有数据
-    await db.transaction('rw', [
-      db.worldGroups, db.worldGroupLinks,
-      db.worldviews, db.powerSystems, db.geographies,
-      db.histories, db.worldNodes, db.characters,
-      db.outlineNodes,
-    ], async () => {
+    await db.transaction('rw', PROJECT_TABLES_ALL, async () => {
       // 删除关联的设定数据
       const allWv = await db.worldviews.where('projectId').equals(pid).toArray()
       for (const wv of allWv) {
