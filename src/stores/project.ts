@@ -3,6 +3,7 @@ import { db } from '../lib/db/schema'
 import type { Project, CreateProjectInput } from '../lib/types'
 import { migrateGenre } from '../lib/types'
 import { requireBackupBefore } from '../lib/safety/require-backup-before'
+import { masterBlobId } from '../lib/master-study/pipeline'
 
 interface ProjectStore {
   projects: Project[]
@@ -67,9 +68,18 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
     // 先收集子表外键 ID（需在主表删除前查询）
     const refIds = await db.references.where('projectId').equals(id).primaryKeys()
-    const workIds = await db.masterWorks.where('projectId').equals(id).primaryKeys()
+    const workIds = (await db.masterWorks.where('projectId').equals(id).primaryKeys()) as number[]
 
-    // 删除项目及所有关联数据（Phase 29-fix: 补全所有 projectId 表）
+    // Phase 0.6: 收集间接归属表的关联键(无 projectId 字段)
+    const sessionIds = (await db.importSessions
+      .where('projectId').equals(id).primaryKeys()) as number[]
+    // 部分老式 MasterWork 直接挂 importSessionId(非 masterBlobId 协议),要额外清理
+    const masterRows = await db.masterWorks.where('projectId').equals(id).toArray()
+    const legacyMasterSessionIds = masterRows
+      .map(w => w.importSessionId)
+      .filter((v): v is number => v != null)
+
+    // 删除项目及所有关联数据（Phase 0.6: 加入 importLogs/importFiles/importJobs 间接归属表）
     await db.transaction('rw', [
       db.projects, db.worldviews, db.storyCores, db.powerSystems,
       db.characters, db.factions, db.outlineNodes, db.chapters, db.foreshadows,
@@ -83,6 +93,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       db.masterChapterBeats, db.masterStyleMetrics,
       db.worldGroups, db.worldGroupLinks, db.itemLedger, db.storyTimelineEvents,
       db.importantLocations, db.worldRulesProfiles, db.codexCategories, db.codexEntries, db.aiUsageLog,
+      // Phase 0.6: 间接归属表(sessionId 间接挂项目 / blob 复用)
+      db.importLogs, db.importFiles, db.importJobs,
     ], async () => {
       // 子表先删（依赖外键）
       if (refIds.length) await db.referenceChunkAnalysis.where('referenceId').anyOf(refIds).delete()
@@ -131,6 +143,29 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       await db.codexCategories.where('projectId').equals(id).delete()
       await db.codexEntries.where('projectId').equals(id).delete()
       await db.aiUsageLog.where('projectId').equals(id).delete()
+
+      // Phase 0.6: 间接归属表清理(GPT-5.5 + Gemini 双重审查发现的孤儿数据)
+      // 灾难:用户导入 10MB 小说 blob 后删项目 → blob 永久残留 → IndexedDB 配额爆
+      // -----------------------------------------------------------------
+      // (1) importLogs / importFiles 通过 sessionId 间接挂项目;
+      //     importFiles 主键就是 sessionId(见 schema.ts: 'sessionId, fileHash, createdAt')
+      if (sessionIds.length) {
+        await db.importLogs.where('sessionId').anyOf(sessionIds).delete()
+        // bulkDelete 用主键数组(sessionId 即主键)
+        await db.importFiles.bulkDelete(sessionIds)
+      }
+      // (2) master 作品的原文 blob 复用 importFiles,虚拟 sessionId = 100000+workId
+      //     (见 src/lib/master-study/pipeline.ts masterBlobId)
+      if (workIds.length) {
+        await db.importFiles.bulkDelete(workIds.map(wid => masterBlobId(wid)))
+      }
+      // (3) 极少数老式 MasterWork 直接挂 importSessionId 而非走 masterBlobId 协议,
+      //     这些 sessionId 不一定在 importSessions 表里(可能是孤立的 blob)
+      if (legacyMasterSessionIds.length) {
+        await db.importFiles.bulkDelete(legacyMasterSessionIds)
+      }
+      // (4) importJobs 直接有 projectId,按字段删
+      await db.importJobs.where('projectId').equals(id).delete()
     })
     if (get().currentProjectId === id) {
       set({ currentProjectId: null })

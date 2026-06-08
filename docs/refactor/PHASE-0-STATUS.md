@@ -11,7 +11,7 @@
 | 0.3 ensureSchema delete-db risk | Done | `refactor/phase-0-task-0.3` / this task commit | Prevent production schema self-check from calling `Dexie.delete()`; align required table list with DB v26. | `npm test -- R-17`; `npm run check:required-tables`; `npm test`; `tsc`; build |
 | 0.4 BUG-EXPORT-WG worldGroupId remap | Done | `refactor/phase-0-task-0.4` / this task commit | Export world group ownership by export ids and import with correct remap. | `npm test -- R-03`; Phase 0 regression suite; `npm test`; `tsc`; build |
 | 0.5 importProjectJSON transaction + FK fail-fast | Done | `refactor/phase-0-task-0.5` / this task commit | Wrap import in transaction and abort/rollback on invalid remapped FK. | `npm test -- R-04`; `npm test -- R-03 R-04`; Phase 0 regression suite; `npm test`; `npm run check:required-tables`; `tsc`; build |
-| 0.6 deleteProject indirect ownership cleanup | Pending | TBD | Delete import sessions/logs/files/jobs and master-study blobs when deleting project. | Delete-project residue regression; `npm test`; `tsc`; build |
+| 0.6 deleteProject indirect ownership cleanup | Done | `refactor/phase-0-task-0.6` / this task commit | Collect sessionIds before transaction; bulk-delete importLogs/importFiles by sessionId; bulk-delete master blobs via masterBlobId(workId); clean importJobs by projectId. | `npm test -- R-05`; full regression suite; `npm run check:required-tables`; `tsc`; build |
 | 0.7 deleteNode chapter cascade | Pending | TBD | Make outline node deletion use chapter cascade so child tables such as emotionBeatCards are cleaned. | Delete-node cascade regression; `npm test`; `tsc`; build |
 | 0.8 migrateToMultiWorld outlineNodes stamping | Pending | TBD | Stamp outline nodes to primary world during multiworld migration. | Outline visibility/stamping regression; `npm test`; `tsc`; build |
 
@@ -172,3 +172,91 @@ Execution note: because the reviewer is temporarily unavailable, Phase 0 tasks a
 - Verification: `npm run check:required-tables` passed.
 - Verification: `npx tsc --noEmit` passed.
 - Verification: `npm run build` passed. Vite emitted existing bundle-size/dynamic-import warnings; no build failure.
+
+---
+
+## 审查者结论 · Phase 0.1 → 0.5 通过(2026-06-08 by Claude)
+
+**审查者**:Claude(本仓库默认审查者,见 HANDOFF §一)
+**审查范围**:commits `45ac028` / `31cb206` / `9f748f5` / `f2e8bbc` / `823005b`(Phase 0.1 → 0.5)
+
+### 总评:✅ 通过
+
+GPT 5.5 的 5 个任务交付**质量超出预期**。严格按 MASTER-BLUEPRINT §4 执行,4 个加分项。
+
+### 7 步审查结果
+
+| Step | 检查项 | 结果 |
+|---|---|---|
+| 1 | git diff 在范围内 | ✅ 5 个独立 commit,每任务一个 |
+| 2 | tsc + build | ✅ tsc=0 / build OK |
+| 3 | 反例测试 R-01/02/03/04/17 | ✅ 全部通过(11/11) |
+| 4 | 反模式 grep | ✅ 无新增"略/TODO/占位";deleteGroup 用 PROJECT_TABLES_ALL;main.tsx 用 `allowReset: import.meta.env.DEV` |
+| 5 | 5 个 P0 灾难场景反推 | ✅ 5 个对应反例测试全过,灾难不可能复现 |
+| 6 | TARGET-STATE Phase 0 形态检查表 | ✅ 逐项符合 |
+| 7 | 审查结论 | ✅ 通过 |
+
+### 4 个加分项(超出蓝图要求)
+
+1. `scripts/check-required-tables.mjs` + `npm run check:required-tables` — schema 漂移在 CI 抓
+2. `requireMappedId / requireMappedIdSafe / assertImportRef` 工具函数 — DRY,Phase 1 可复用
+3. 保留 `legacyRawId` 兼容路径 — 老备份能继续导入,不破坏现有用户
+4. `PHASE-0-STATUS.md` + `REFACTOR-PROGRESS.md` 自建进度跟踪 — 职业开发习惯
+
+### 🟡 小瑕疵(不打回,记录)
+
+- 5 个任务用了同一个分支 `refactor/phase-0-task-0.5`(本应每任务独立分支)
+  - 影响小:5 个 commit 独立,仍可单回滚
+  - 下次注意:0.6 / 0.7 / 0.8 一个任务一个分支
+
+### 接手者更换说明
+
+GPT 5.5 限额暂停。审查者 Claude 接管 0.6 / 0.7 / 0.8 实施。
+
+剩余三个 P0 任务:
+- `0.6` — deleteProject 漏间接归属表(importLogs / importFiles / importJobs / master blob)
+- `0.7` — deleteNode 绕过 deleteChapter → emotionBeatCards 残留
+- `0.8` — migrateToMultiWorld 漏给 outlineNodes 盖章(Gemini P0-8)
+
+完成后由项目作者最终审查。Phase 0 全部完成 → 打 tag `phase-0-complete` → 合 main → 部署。
+
+---
+
+## Phase 0.6 - deleteProject Indirect Ownership Cleanup
+
+### 2026-06-08 by Claude(接手者)
+
+- **任务**:MASTER-BLUEPRINT §4.0.6 — deleteProject 补间接归属表清理
+- **位置**:`src/stores/project.ts`
+- **改法**:
+  - 事务声明加入 `db.importLogs / db.importFiles / db.importJobs` 三张表
+  - 事务前查 `sessionIds = importSessions.where('projectId').equals(id).primaryKeys()` 与
+    `legacyMasterSessionIds`(老式 MasterWork.importSessionId)
+  - 事务体内 4 步清理:
+    1. `importLogs.where('sessionId').anyOf(sessionIds).delete()`
+    2. `importFiles.bulkDelete(sessionIds)`(主键即 sessionId)
+    3. `importFiles.bulkDelete(workIds.map(masterBlobId))`(master blob,虚拟 sessionId)
+    4. `importFiles.bulkDelete(legacyMasterSessionIds)`(老式直接挂的)
+    5. `importJobs.where('projectId').equals(id).delete()`
+  - import `masterBlobId` from `src/lib/master-study/pipeline` 避免硬编码 `100000+`
+
+- **新增反例测试**:`tests/regression/R-05-delete-project-blob.test.ts`
+  - Test 1:全套间接归属表 + master blob 残留检查
+  - Test 2:删项目 A 不影响项目 B 的 blob
+
+- **完成判据**:
+  - [x] 事务声明含 importLogs/importFiles/importJobs
+  - [x] R-05 通过(2 tests)
+  - [x] tsc 零错
+  - [x] 全部 13 个反例测试通过
+  - [x] `npm run check:required-tables` 通过
+  - [x] build 通过
+
+- **Verification**:
+  - `npm test -- R-05` → 2 passed
+  - `npm test` → 13 passed(7 files)
+  - `npx tsc --noEmit` → TSC_EXIT=0
+  - `npm run check:required-tables` → ok: 45 tables match schema.ts
+  - `npm run build` → success
+
+- **灾难场景**:✅ 已根治。用户导入 10MB 小说 blob 后删项目 → blob 不再永久残留。
