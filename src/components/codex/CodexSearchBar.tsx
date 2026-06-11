@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { useCodexStore } from '../../stores/codex'
 import { parseEntryFields } from '../../lib/types/codex'
+import { scoreCodexEntry } from '../../lib/codex/search'
 
 interface Props {
   /** 本面板包含的词条分类(builtInKey 列表) */
@@ -35,17 +36,13 @@ export default function CodexSearchBar({ categoryKeys, onJump }: Props) {
   const results = useMemo(() => {
     const query = q.trim()
     if (!query) return []
-    const qChars = [...new Set([...query])]
     const scored: { id: number; name: string; cat: string; catKey: string; summary: string; score: number }[] = []
     for (const e of entries) {
       const info = catInfo.get(e.categoryId)
       if (!info) continue
       const name = (e.name || '').trim()
-      const hay = `${name} ${e.summary || ''} ${Object.values(parseEntryFields(e.fields)).join(' ')}`
-      let score = 0
-      if (hay.includes(query)) score += 1000              // 全字匹配最高
-      if (name.includes(query)) score += 500              // 名称命中加权
-      score += qChars.filter(ch => name.includes(ch)).length * 10  // 单字相关性
+      const fieldsText = Object.values(parseEntryFields(e.fields)).join(' ')
+      const score = scoreCodexEntry(name, e.summary || '', fieldsText, query)
       if (score === 0) continue
       scored.push({ id: e.id!, name: name || '未命名', cat: info.name, catKey: info.key, summary: e.summary || '', score })
     }
