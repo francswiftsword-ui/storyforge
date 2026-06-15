@@ -102,12 +102,12 @@ AI 输出经 `adopt({ target, data })` 写回,只有这里登记的字段可写(
 | category | 触发文件 |
 |---|---|
 | `ai.restructure` | `src/lib/ai/restructure.ts:52` |
-| `chapter.content` | `src/components/editor/ChapterEditor.tsx:275` |
+| `chapter.content` | `src/components/editor/ChapterEditor.tsx:280` |
 | `chapter.content.batch` | `src/lib/ai/batch-detail-runner.ts:256` |
-| `chapter.continue` | `src/components/editor/ChapterEditor.tsx:283` |
-| `chapter.deai` | `src/components/editor/ChapterEditor.tsx:371` |
-| `chapter.expand` | `src/components/editor/ChapterEditor.tsx:363` |
-| `chapter.polish` | `src/components/editor/ChapterEditor.tsx:355` |
+| `chapter.continue` | `src/components/editor/ChapterEditor.tsx:289` |
+| `chapter.deai` | `src/components/editor/ChapterEditor.tsx:378` |
+| `chapter.expand` | `src/components/editor/ChapterEditor.tsx:370` |
+| `chapter.polish` | `src/components/editor/ChapterEditor.tsx:362` |
 | `chapter.toolbar` | `src/components/editor/FloatingToolbar.tsx:105` |
 | `character.generate` | `src/components/character/CharacterPanel.tsx:134` |
 | `character.structure` | `src/lib/ai/parse-character-output.ts:92` |
@@ -119,9 +119,9 @@ AI 输出经 `adopt({ target, data })` 写回,只有这里登记的字段可写(
 | `geography.world-map` | `src/components/geography/WorldMapPanel.tsx:98` |
 | `inspiration.reverse` | `src/components/project/InspirationPanel.tsx:110` |
 | `inventory.extract` | `src/components/items/InventoryPanel.tsx:63` |
-| `outline.chapter` | `src/components/outline/OutlinePanel.tsx:231`<br/>`src/lib/ai/batch-outline-runner.ts:123` |
+| `outline.chapter` | `src/components/outline/OutlinePanel.tsx:256`<br/>`src/lib/ai/batch-outline-runner.ts:123` |
 | `outline.character-driven` | `src/components/outline/CharacterDrivenPlotPanel.tsx:115` |
-| `outline.volume` | `src/components/outline/OutlinePanel.tsx:216` |
+| `outline.volume` | `src/components/outline/OutlinePanel.tsx:241` |
 | `prompt.examples` | `src/components/settings/prompt/PromptExamplesEditor.tsx:105` |
 | `reference.characters` | `src/components/project/AnalysisReportViewer.tsx:138` |
 | `reference.summary` | `src/components/project/AnalysisReportViewer.tsx:109` |
@@ -147,4 +147,4 @@ AI 输出经 `adopt({ target, data })` 写回,只有这里登记的字段可写(
 
 ---
 
-生成时间基准:commit `c13dba3`
+生成时间基准:commit `a67554b`
