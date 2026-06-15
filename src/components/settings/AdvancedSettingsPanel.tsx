@@ -19,10 +19,12 @@ import {
   resetAllEffectiveLimits,
   onEffectiveLimitsChange,
 } from '../../lib/registry/effective-limits'
+import { useDialog } from '../shared/Dialog'
 
 export default function AdvancedSettingsPanel() {
   const [enabled, setEnabled] = useAdvancedMode()
   const [snapshot, setSnapshot] = useState<Record<string, number>>(() => getEffectiveLimitsSnapshot())
+  const dialog = useDialog()
 
   // 订阅 effective-limits 变化（写入 / 跨标签页 / 全部恢复）
   useEffect(() => {
@@ -100,10 +102,14 @@ export default function AdvancedSettingsPanel() {
             {overriddenCount > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(`确定恢复全部 ${overriddenCount} 项 budget 到默认值？`)) {
-                    resetAllEffectiveLimits()
-                  }
+                onClick={async () => {
+                  const ok = await dialog.confirm({
+                    title: '恢复全部默认值？',
+                    message: `确定恢复全部 ${overriddenCount} 项 budget 到默认值？`,
+                    confirmText: '全部恢复',
+                    tone: 'danger',
+                  })
+                  if (ok) resetAllEffectiveLimits()
                 }}
                 className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-bg-base border border-amber-500/40 text-amber-400 rounded hover:bg-amber-500/10 transition-colors"
               >
