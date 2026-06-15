@@ -252,6 +252,10 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
     const prevChapter = chapters.filter(c => c.order < (currentChapter?.order || 0)).pop()
     const prevEnding = htmlToPlainText(prevChapter?.content || '').slice(-getEffectiveLimit('engine.previousEnding', 500))
     const { text: fullCtx, segments: assembledSegments, worldRulesContext } = await buildFullWorldCtx('write')
+    // 把工具栏「自定义指令」输入框的内容注入 user prompt 模板的 {{userHint}} 槽位。
+    // adapter 早就支持 userHint，模板（chapter.content）也带 {{#if userHint}} 块；
+    // 此前只有 polish 接通这条路径，generate / continue / expand 都漏接，导致用户填的指令实际不进 prompt。
+    const userHint = customInstruction.trim() || undefined
     const messages = buildChapterContentPrompt(
       outlineNode.title,
       outlineNode.summary,
@@ -259,6 +263,7 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
       charCtx,
       prevEnding,
       worldRulesContext,
+      userHint,
     )
 
     // Phase 21.3: 计算上下文预算
@@ -278,7 +283,8 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
   const handleContinue = async () => {
     if (!plainText || !outlineNode) return
     const { text: fullCtx } = await buildFullWorldCtx('write')
-    const messages = buildContinuePrompt(plainText, outlineNode.summary, fullCtx)
+    const userHint = customInstruction.trim() || undefined
+    const messages = buildContinuePrompt(plainText, outlineNode.summary, fullCtx, userHint)
     setAIAction('continue')
     ai.start(messages, undefined, { category: 'chapter.continue', projectId: project.id! })
   }
@@ -330,9 +336,10 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
       const prevEnding = htmlToPlainText(prevChapter?.content || '').slice(-getEffectiveLimit('engine.previousEnding', 500))
       messages = buildChapterContentPrompt(
         outlineNode.title, outlineNode.summary, fullCtx, charCtx, prevEnding, worldRulesContext,
+        customInstruction.trim() || undefined,
       )
     } else {
-      messages = buildContinuePrompt(plainText, outlineNode.summary, fullCtx)
+      messages = buildContinuePrompt(plainText, outlineNode.summary, fullCtx, customInstruction.trim() || undefined)
     }
     const preset = getModelPreset(aiConfig.provider, aiConfig.model)
     const modelMaxContext = (aiConfig.contextWindow && aiConfig.contextWindow > 0)
@@ -345,7 +352,7 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
       modelMaxContext,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outlineNode, currentChapter, plainText, chapters, chapterWorldGroupId, project.id, aiConfig.provider, aiConfig.model, aiConfig.contextWindow, charCtx, creativeRules, extraStateIds])
+  }, [outlineNode, currentChapter, plainText, chapters, chapterWorldGroupId, project.id, aiConfig.provider, aiConfig.model, aiConfig.contextWindow, charCtx, creativeRules, extraStateIds, customInstruction])
 
   const handlePolish = () => {
     const selected = editorRef.current?.getSelectedText() || plainText.slice(-1000)
@@ -358,7 +365,7 @@ export default function ChapterEditor({ project, outlineNodeId }: Props) {
   const handleExpand = () => {
     const selected = editorRef.current?.getSelectedText() || plainText.slice(-500)
     if (!selected) return
-    const messages = buildExpandPrompt(selected)
+    const messages = buildExpandPrompt(selected, customInstruction.trim() || undefined)
     setAIAction('expand')
     ai.start(messages, undefined, { category: 'chapter.expand', projectId: project.id! })
   }
