@@ -201,6 +201,29 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     return idx >= 0 ? assembled.segments[idx]?.content ?? '' : ''
   }
 
+  /**
+   * 装配 assembled.text 的"剔除版"——把那些会通过专属槽位单独注入的 source（如 characters / worldRules）
+   * 从 worldContext 里去掉，避免与 {{characterContext}} / {{worldRulesContext}} 形成完全机械的重复。
+   *
+   * 背景：assembleContext 装配后的 text 把所有 included source 顺序拼接；OutlinePanel 又把 characters
+   * 和 worldRules 当作"重要内容靠近 prompt 末尾"的专属槽位再注入一次，导致 AI 收到的 prompt 里同样的角色 /
+   * 历史锚点连续出现两份（每份各 ≤ 数百字），token 翻倍，且容易让模型对"哪一份才是权威"产生困惑。
+   */
+  const buildWorldContextWithout = (assembled: AssembleContextResult, excludeKeys: string[]): string => {
+    const exclude = new Set(excludeKeys)
+    // 与 assembleContext 内部 text 拼接保持同格式（segments.map(s => s.content).join('\n\n')），
+    // 仅把命中 excludeKeys 的那些 source 抽出来。这样在 OutlinePanel 既有的"专属槽位"注入风格下
+    // 不会引入新的小标题。
+    const kept: string[] = []
+    assembled.included.forEach((key, idx) => {
+      if (exclude.has(key)) return
+      const seg = assembled.segments[idx]
+      if (!seg || !seg.content) return
+      kept.push(seg.content)
+    })
+    return kept.join('\n\n')
+  }
+
   // ── AI 生成 ──
 
   const handleAIVolumes = async () => {
@@ -208,7 +231,9 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     setPreviewVolumes(null)
     setPreviewChapters(null)
     const assembled = await buildOutlineAssembledContext(null)
-    const worldCtx = assembled.text
+    // 把 characters 和 worldRules 排出 worldContext，因为它们会通过 {{characterContext}} / {{worldRulesContext}}
+    // 专属槽位单独注入；如果 worldCtx 仍带这两段，AI 会收到两份完全相同的内容。
+    const worldCtx = buildWorldContextWithout(assembled, ['characters', 'worldRules'])
     const scCtx = storyCore ? `主题：${storyCore.theme}\n冲突：${storyCore.centralConflict}\n主线：${storyCore.mainPlot || storyCore.storyLines || ''}${storyCore.subPlots ? `\n复线：${storyCore.subPlots}` : ''}` : ''
     const charCtx = contextPart(assembled, 'characters')
     const rulesCtx = contextPart(assembled, 'worldRules')
@@ -222,7 +247,7 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     setPreviewVolumes(null)
     setPreviewChapters(null)
     const assembled = await buildOutlineAssembledContext(selectedVol.worldGroupId ?? null, selectedVol.id)
-    const worldCtx = assembled.text
+    const worldCtx = buildWorldContextWithout(assembled, ['characters', 'worldRules'])
     const volIdx = volumes.indexOf(selectedVol)
     const prevSummary = volIdx > 0 ? volumes[volIdx - 1].summary : ''
     const charCtx = contextPart(assembled, 'characters')
@@ -237,7 +262,9 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     const groupId = kind === 'volume' ? null : (selectedVol?.worldGroupId ?? null)
     const nodeId = kind === 'volume' ? null : selectedVol?.id
     const assembled = await buildOutlineAssembledContext(groupId, nodeId)
-    const worldCtx = assembled.text
+    // 与 handleAIVolumes / handleAIChapters 同口径：把 characters 和 worldRules 从 worldCtx 中剔除，
+    // 避免它们在专属槽位 + worldContext 双注入造成机械重复。
+    const worldCtx = buildWorldContextWithout(assembled, ['characters', 'worldRules'])
     const charCtx = contextPart(assembled, 'characters')
     const rulesCtx = contextPart(assembled, 'worldRules')
 
@@ -281,7 +308,7 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
     batchAbortRef.current = controller
 
     const assembled = await buildOutlineAssembledContext(null)
-    const worldCtx = assembled.text
+    const worldCtx = buildWorldContextWithout(assembled, ['characters', 'worldRules'])
     const charCtx = contextPart(assembled, 'characters')
     const rulesCtx = contextPart(assembled, 'worldRules')
 
@@ -294,7 +321,7 @@ export default function OutlinePanel({ project, onOpenChapter }: Props) {
           ? async (volId) => {
             const vol = nodes.find(n => n.id === volId)
             const resolved = await buildOutlineAssembledContext(vol?.worldGroupId ?? null, volId)
-            return resolved.text
+            return buildWorldContextWithout(resolved, ['characters', 'worldRules'])
           }
           : undefined,
         worldRulesContextResolver: project.enableMultiWorld
