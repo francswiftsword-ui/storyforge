@@ -101,7 +101,7 @@ flowchart TB
 | 当前事实 | 数值 | 单一事实源 |
 |---|---:|---|
 | 应用语义版本 | `3.9.1` | `package.json` |
-| TypeScript 生产源码 | 1143 个文件 / 355707 行 | `tsconfig.json` |
+| TypeScript 生产源码 | 1144 个文件 / 355744 行 | `tsconfig.json` |
 | IndexedDB schema | v10 / 123 张 required tables | `schema.ts` / `REQUIRED_TABLES` |
 | PROJECT_TABLES | 123 张表 | `project-tables.ts` |
 | Prompt 主线 | 65 个 moduleKey / 210 条内置模板 | `PromptModuleKey` / `prompt-seeds*.ts` |
@@ -269,6 +269,7 @@ AVG 会谈使用 `avg.consult.v1` 和 `avg.authoring` 注册上下文，经 dura
 当前重构 UI 是应用的唯一外壳，默认使用青绿山水、奶油纸面；水墨远山是同一布局的可选皮肤。新功能沿用各产品的导航和编辑区域：主要操作在产品左侧，内容分类在页内左侧；创建位于各自产品页，浏览不以先有作品或世界为前置条件。
 
 - `src/styles/themes.css` 是全站配色、字体、山水背景和编辑器变量的单一来源，由主应用与独立预览共用的 `src/lib/theme-bootstrap.ts` 引入，包括 portal 弹窗；`src/components/longform/longform.css` 提供已确认的共享页面样式。共享外框和产品制作面板通过语义变量换肤，局部 fallback 保留原青绿细节。新增皮肤应扩展统一变量和主题注册表，不得恢复旧主题系统或独立应用外壳。
+- 功能工作区的尺寸规范由 `src/styles/workspace-layout.css` 统一维护，覆盖世界引擎、长短篇、改编产品、上层产品与共享工具页。桌面一级导航 144px、内容分类栏 136px，顶部全局导航 64px，页标题与模式/阶段切换合并为约 48px 的工具栏；平板缩窄导航，手机沿用抽屉与横向分类条。内容边距 8px，字段面板使用可用宽度，正文阅读宽度保持编辑器自身设置。独立预览与开发中产品同步采用紧凑尺寸；导航动作、保存、AI 调用和数据 owner 不因布局调整改变。
 - 首页“今天”直接显示主视觉，不显示面包屑条；顶部、侧栏和主视觉共用连续的整页背景，内容纸面从主视觉下方开始；主视觉基准最小高度为桌面 260px、手机 220px，长内容可自然撑高。通用设置填满可用内容宽度，主题缩略图按容器宽度自动分列。
 - `src/components/navigation/ProductFrame.tsx` 为跨产品工具提供相同的页面外壳；现有产品保留各自更完整的导航和操作。`retired-routes.ts` 只转换旧书签，不渲染旧页面。
 - `ProductHubPage`、旧 `Sidebar` 视图、旧全局创建弹层与旧引导已下线。模块类型树继续供现行编辑器、内容分类和 AI 元信息使用；它不是另一套 UI。
@@ -278,4 +279,4 @@ AVG 会谈使用 `avg.consult.v1` 和 `avg.authoring` 注册上下文，经 dura
 
 UI 清理回归覆盖：历史查询入口与对象参数、设置安全返回、世界封存与交接、真实跑团存档恢复、独立作品创建、文件夹绑定及示例体验。不得为兼容旧测试而恢复旧页面或全局创建流程。
 
-品牌图标统一通过 `BrandIcon` 使用作者提供的 `public/brand/storyforge-icon.png`；浏览器图标、安装图标和 README 同源。应用名称继续为 StoryForge / 故事熔炉。新增产品页面复用该组件，不重新引入火焰标志。
+品牌图标统一通过 `BrandIcon` 引用作者提供的透明图形 `public/brand/xuanxiang-mark.svg#mark`，沿用其矢量轮廓，导航配色由主题变量继承，不附带底板或图内文字。浏览器图标直接使用该 SVG；安装图标和 README 的透明 PNG 由 `node scripts/generate-brand-icons.mjs` 从同一 SVG 生成。应用名称继续为 StoryForge / 故事熔炉。新增产品页面复用该组件，不重新引入火焰标志。

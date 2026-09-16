@@ -1,3 +1,4 @@
+import { useCompactCategoryScroll } from '../hooks/useCompactCategoryScroll'
 import BrandIcon from '../components/shared/BrandIcon'
 import ExampleLibrary from '../components/examples/ExampleLibrary'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -31,6 +32,7 @@ export default function MotionMaterialsPage(){
  const main=useRef<HTMLElement>(null)
  const {pageId='library'}=useParams();const current=pages.some(([id])=>id===pageId)?pageId:'library'
  useEffect(()=>{main.current?.scrollTo(0,0);window.scrollTo(0,0);const nav=main.current?.querySelector<HTMLElement>('.mm-subnav');const active=nav?.querySelector<HTMLElement>('button[aria-current="page"]');if(nav&&active)nav.scrollTop+=active.getBoundingClientRect().top-nav.getBoundingClientRect().top-nav.clientHeight/2},[current])
+ useCompactCategoryScroll(main, '.mm-subnav', current)
  const [params]=useSearchParams();const workId=Number(params.get('work'))||null;const navigate=useNavigate();const dialog=useDialog()
  const [works,setWorks]=useState<Work[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false),[creating,setCreating]=useState(params.has('create')),[menu,setMenu]=useState(false),[search,setSearch]=useState(''),[filter,setFilter]=useState('all')
  const [premise,setPremise]=useState('')

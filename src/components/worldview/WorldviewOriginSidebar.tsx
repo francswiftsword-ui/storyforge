@@ -20,7 +20,7 @@ interface Props {
 
 export default function WorldviewOriginSidebar({ active, streamingKeys, pendingKeys, onSelect }: Props) {
   return (
-    <div className="w-fit min-w-32 max-w-44 shrink-0 space-y-0.5 pt-1">
+    <div className="worldview-origin-nav w-32 min-w-0 max-w-32 shrink-0 space-y-0.5 pt-1">
       {WORLDVIEW_ORIGIN_FIELDS.map(field => {
         const isActive = active === field.key
         const isFieldStreaming = streamingKeys.has(field.key)

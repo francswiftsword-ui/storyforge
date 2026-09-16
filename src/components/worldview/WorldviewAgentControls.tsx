@@ -96,13 +96,13 @@ export default function WorldviewAgentControls({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <AIFieldModeTabs value={mode} onChange={setMode} />
         <input
           value={hint}
           onChange={event => setHint(event.target.value)}
           placeholder="给 AI 的补充说明（可选）"
-          className="flex-1 px-2 py-1.5 bg-bg-base border border-border rounded text-xs text-text-primary focus:outline-none focus:border-accent"
+          className="min-w-0 flex-1 basis-40 px-2 py-1.5 bg-bg-base border border-border rounded text-xs text-text-primary focus:outline-none focus:border-accent"
         />
         <button
           type="button"
@@ -132,7 +132,7 @@ export default function WorldviewAgentControls({
         <select
           value={lengthMode}
           onChange={event => setLengthMode(event.target.value as 'default' | 'custom')}
-          className="rounded border border-border bg-bg-base px-2 py-1 text-text-primary"
+          className="min-w-0 max-w-full rounded border border-border bg-bg-base px-2 py-1 text-text-primary"
         >
           <option value="default">默认（最多 {visibleEffectiveCap.toLocaleString()} tokens）</option>
           <option value="custom">作者自定义</option>

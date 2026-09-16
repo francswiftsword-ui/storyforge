@@ -125,7 +125,7 @@ export default function WorldviewOriginPanel({ project, initialWorldviewId }: Pr
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="worldview-origin-layout flex gap-4">
         {/* ── 左侧边栏 ── */}
         <WorldviewOriginSidebar
           active={active}
