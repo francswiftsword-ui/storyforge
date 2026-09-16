@@ -101,7 +101,7 @@ flowchart TB
 | 当前事实 | 数值 | 单一事实源 |
 |---|---:|---|
 | 应用语义版本 | `3.9.1` | `package.json` |
-| TypeScript 生产源码 | 1143 个文件 / 355707 行 | `tsconfig.json` |
+| TypeScript 生产源码 | 1143 个文件 / 355716 行 | `tsconfig.json` |
 | IndexedDB schema | v10 / 123 张 required tables | `schema.ts` / `REQUIRED_TABLES` |
 | PROJECT_TABLES | 123 张表 | `project-tables.ts` |
 | Prompt 主线 | 65 个 moduleKey / 210 条内置模板 | `PromptModuleKey` / `prompt-seeds*.ts` |
@@ -278,4 +278,4 @@ AVG 会谈使用 `avg.consult.v1` 和 `avg.authoring` 注册上下文，经 dura
 
 UI 清理回归覆盖：历史查询入口与对象参数、设置安全返回、世界封存与交接、真实跑团存档恢复、独立作品创建、文件夹绑定及示例体验。不得为兼容旧测试而恢复旧页面或全局创建流程。
 
-品牌图标统一通过 `BrandIcon` 使用作者提供的 `public/brand/storyforge-icon.png`；浏览器图标、安装图标和 README 同源。应用名称继续为 StoryForge / 故事熔炉。新增产品页面复用该组件，不重新引入火焰标志。
+品牌图标统一通过 `BrandIcon` 引用作者提供的透明图形 `public/brand/xuanxiang-mark.svg#mark`，沿用其矢量轮廓，导航配色由主题变量继承，不附带底板或图内文字。浏览器图标直接使用该 SVG；安装图标和 README 的透明 PNG 由 `node scripts/generate-brand-icons.mjs` 从同一 SVG 生成。应用名称继续为 StoryForge / 故事熔炉。新增产品页面复用该组件，不重新引入火焰标志。
