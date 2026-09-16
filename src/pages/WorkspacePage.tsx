@@ -684,7 +684,7 @@ export default function WorkspacePage({ embeddedProjectId, embeddedModule }: { e
             )}
           </div>
         )}
-        <div className={`min-h-0 flex-1 overflow-y-auto ${isImmersiveModule ? '' : 'p-6'}`}>
+        <div className={`workspace-module-body min-h-0 flex-1 overflow-y-auto ${isImmersiveModule ? '' : 'p-3'}`}>
           {/* Phase 3.5: 懒加载面板(地图类)加载时显示 fallback */}
           <Suspense fallback={<div className="flex items-center justify-center h-64 text-text-muted text-sm">面板加载中…</div>}>
             {isLongform && longSection === 'versions' && <nav className="lf-subtabs" aria-label="版本与导出">{([['version-history', '版本历史'], ['export', '导出与备份']] as const).map(([id, label]) => <button key={id} aria-current={activeModule === id ? 'page' : undefined} onClick={() => selectModule(id)}>{label}</button>)}</nav>}

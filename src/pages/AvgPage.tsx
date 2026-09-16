@@ -329,6 +329,17 @@ export default function AvgPage() {
             {row ? ` · ${row.work.title}` : ""}
           </small>
           <h2>{primary[1]}</h2>
+            {primaryId !== 'library' && primaryId !== 'player' && <nav className="avg-phases" aria-label="制作阶段">
+              {[
+                ["source", "S1 · 世界封存"],
+                ["vision", "S2 · 产品定向"],
+                ["production", "S3 · 产品执行"],
+              ].map(([id, label]) => (
+                <button key={id} aria-current={(id === 'source' ? page[0] === 'source' : id === 'vision' ? page[2] === 'S2 · 产品定向' : page[2] === 'S3 · 产品执行') ? 'step' : undefined} onClick={() => go(id)}>
+                  {label}
+                </button>
+              ))}
+            </nav>}
           <div className="lf-mobile-controls">
             <button aria-expanded={menu} onClick={() => {setMenu(!menu);setContentMenu(false);}}>AVG 目录</button>
             {hasContentNav && <button aria-expanded={contentMenu} onClick={() => {setContentMenu(!contentMenu);setMenu(false);}}>{primaryId === 'workbench' ? '制作目录' : '游玩目录'}</button>}
@@ -344,17 +355,7 @@ export default function AvgPage() {
             </nav>
           </aside>}
           <main ref={contentRef} className="lf-content">
-            {primaryId !== 'library' && primaryId !== 'player' && <nav className="avg-phases" aria-label="制作阶段">
-              {[
-                ["source", "S1 · 世界封存"],
-                ["vision", "S2 · 产品定向"],
-                ["production", "S3 · 产品执行"],
-              ].map(([id, label]) => (
-                <button key={id} aria-current={(id === 'source' ? page[0] === 'source' : id === 'vision' ? page[2] === 'S2 · 产品定向' : page[2] === 'S3 · 产品执行') ? 'step' : undefined} onClick={() => go(id)}>
-                  {label}
-                </button>
-              ))}
-            </nav>}
+
             {primaryId === "workbench" && ["confirm", "production", "review"].includes(page[0]) && <h3 className="avg-page-heading">{page[1]}</h3>}
             {error && (
               <p className="avg-alert" role="alert">

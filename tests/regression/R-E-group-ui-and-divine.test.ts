@@ -1,7 +1,7 @@
 /**
  * R-E-group-ui-and-divine · 6 月 17 日 E 组收尾
  *
- * E-2: 二级导航按内容自适应，不再固定 w-48。
+ * E-2: 自适应二级导航不再固定 w-48；紧凑世界起源导航由 compact-workspaces.spec.ts 验证。
  * E-4: 章节编辑器提供完整状态选择器。
  */
 import { describe, expect, it } from 'vitest'
@@ -12,9 +12,8 @@ const root = process.cwd()
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8')
 
 describe('R-E-group-ui-and-divine · E 组收尾', () => {
-  it('E-2: 世界观与故事设计二级导航使用内容自适应宽度', () => {
+  it('E-2: 自然、人文与故事设计二级导航使用内容自适应宽度', () => {
     const files = [
-      'src/components/worldview/WorldviewOriginSidebar.tsx',
       'src/components/worldview/WorldviewNaturalPanel.tsx',
       'src/components/worldview/WorldviewHumanityPanel.tsx',
       'src/components/worldview/StoryCorePanel.tsx',

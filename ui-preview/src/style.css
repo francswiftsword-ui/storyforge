@@ -20,3 +20,15 @@
 
 /* Palette inheritance also reaches isolated, still-in-development product pages. */
 .topbar,.sidebar{background-color:var(--shell-wash)}
+
+/* Compact workspace geometry shared by development-only product routes. */
+.app{grid-template-columns:144px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr) 33px}
+.app .topbar{padding:0 16px;gap:16px}.app .brand{width:auto;gap:9px}.app .brand strong{font-size:22px}.app .brand span{font-size:11px;letter-spacing:3px}
+.app .sidebar{padding:12px 7px 0}.app .sidebar-title{padding:0 4px 10px}.app .sidebar-title h2{font-size:20px;margin:0}.app .sidebar-title small,.app .sidebar-title p{display:none}
+.app .side-group>button,.app .sidebar-footer>button,.app .side-module{padding:8px 7px;gap:6px;font-size:12px;border-radius:9px;min-height:36px}.app .side-group h4{padding:6px 7px;margin:5px 0;font-size:11px}
+.app .main{padding:8px 12px 0;border-radius:12px 0 0 0}.app .breadcrumb{margin-bottom:8px;min-height:24px}.app .heading{margin:0 0 12px;gap:12px}.app .heading h1{font-size:22px;margin-bottom:4px}.app .heading p{font-size:13px}.app .heading .eyebrow{display:none}
+.app .paper{padding:16px;border-radius:12px}.app .phase-path{gap:8px;margin:0 0 12px;max-width:720px}.app .phase-path>button{padding:7px 10px;border-radius:9px}.app .phase-path small{display:none}
+.app .shoulder-tabs{padding:0;gap:4px}.app .shoulder-tabs button,.app .shoulder-tabs button.active{min-width:0;font:13px/1.5 var(--sans);padding:7px 12px;border-radius:8px}.app .shoulder-tabs button.active:before{display:none}.app .shoulder-tabs+.heading{margin-top:10px}
+@media(min-width:1101px){.app .agent-layout,.app .settings-layout,.app .map-layout{grid-template-columns:136px minmax(0,1fr) 220px;gap:12px}}
+@media(max-width:1000px) and (min-width:651px){.app{grid-template-columns:132px minmax(0,1fr)}}
+@media(max-width:650px){.app{grid-template-columns:minmax(0,1fr)}.app .main{grid-column:1;padding:8px;border-radius:10px 10px 0 0}.app .sidebar{display:none}.app.preview-navigation-open .sidebar{display:flex;top:64px;width:210px}.app .topbar{padding:0 10px;gap:10px}.app .brand strong{font-size:19px}.app .heading h1{font-size:20px}.app .paper{padding:12px}.app .side-group>button{min-height:40px}}

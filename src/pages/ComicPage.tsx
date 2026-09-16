@@ -1,3 +1,4 @@
+import { useCompactCategoryScroll } from '../hooks/useCompactCategoryScroll'
 import BrandIcon from '../components/shared/BrandIcon'
 import ExampleLibrary from '../components/examples/ExampleLibrary'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +33,7 @@ export default function ComicPage(){
  const main=useRef<HTMLElement>(null)
  const {pageId='library'}=useParams();const current=pages.some(([id])=>id===pageId)?pageId:'library'
  useEffect(()=>{main.current?.scrollTo(0,0);window.scrollTo(0,0);const nav=main.current?.querySelector<HTMLElement>('.cp-subnav');const active=nav?.querySelector<HTMLElement>('button[aria-current="page"]');if(nav&&active)nav.scrollTop+=active.getBoundingClientRect().top-nav.getBoundingClientRect().top-nav.clientHeight/2},[current])
+ useCompactCategoryScroll(main, '.cp-subnav', current)
  const [params]=useSearchParams();const workId=Number(params.get('work'))||null;const navigate=useNavigate();const dialog=useDialog()
  const [works,setWorks]=useState<Work[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false),[creating,setCreating]=useState(params.has('create')),[menu,setMenu]=useState(false),[search,setSearch]=useState(''),[filter,setFilter]=useState('all')
  const [title,setTitle]=useState(''),[sourceId,setSourceId]=useState(''),[sourceMode,setSourceMode]=useState('local'),[text,setText]=useState(''),[sourceReady,setSourceReady]=useState<WorkspaceScope|null>(null),[chapters,setChapters]=useState<{id:number;title:string;wordCount:number}[]>([]),[selection,setSelection]=useState<number[]>([]),[range,setRange]=useState('all'),[spec,setSpec]=useState(defaultComicTargetSpec)

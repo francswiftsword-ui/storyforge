@@ -387,6 +387,19 @@ export default function AiTownPage() {
             {row ? ` · ${row.work.title}` : ""}
           </small>
           <h2>{TOWN_PRIMARY.find((p) => p[0] === primary)?.[1]}</h2>
+            {!["library", "player", "community"].includes(primary) && (
+              <nav className="avg-phases" aria-label="制作阶段">
+                {[
+                  ["source", "S1 · 世界封存"],
+                  ["vision", "S2 · 产品定向"],
+                  ["production", "S3 · 产品执行"],
+                ].map(([id, label]) => (
+                  <button key={id} onClick={() => go(id)}>
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            )}
           <div className="lf-mobile-controls">
             <button
               onClick={() => {
@@ -441,19 +454,7 @@ export default function AiTownPage() {
             </aside>
           )}
           <main className="lf-content" ref={content}>
-            {!["library", "player", "community"].includes(primary) && (
-              <nav className="avg-phases" aria-label="制作阶段">
-                {[
-                  ["source", "S1 · 世界封存"],
-                  ["vision", "S2 · 产品定向"],
-                  ["production", "S3 · 产品执行"],
-                ].map(([id, label]) => (
-                  <button key={id} onClick={() => go(id)}>
-                    {label}
-                  </button>
-                ))}
-              </nav>
-            )}
+
             {error && (
               <p className="avg-alert" role="alert">
                 {error}
